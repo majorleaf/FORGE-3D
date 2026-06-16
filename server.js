@@ -5,6 +5,7 @@ import cors from 'cors';
 import { client } from '@gradio/client';
 
 import authRoutes from './routes/authRoutes.js';
+import apiRoutes from './routes/apiRoutes.js';
 import supabase from './config/supabaseClient.js';
 
 
@@ -22,6 +23,15 @@ app.use( express.json());
 
 
 //APIs
+
+// endpoints
+app.use('/api/auth', authRoutes);
+app.use('/api', apiRoutes);
+
+
+
+
+//root endpoint
 app.get('/', (req, res) =>  {
     res.json({ message: "FORGE3D BACKEND"})
 });
