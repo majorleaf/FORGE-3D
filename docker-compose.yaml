@@ -1,0 +1,86 @@
+version: "3.9"
+
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    container_name: forge3d_app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+      - outputs:/app/outputs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - forge3d_network
+    command: npm run dev
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: forge3d_postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: forge3d
+      POSTGRES_PASSWORD: forge3d_secret
+      POSTGRES_DB: forge3d
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forge3d"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - forge3d_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: forge3d_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - forge3d_network
+
+  openscad:
+    build:
+      context: .
+      dockerfile: docker/openscad/Dockerfile
+    container_name: forge3d_openscad
+    restart: unless-stopped
+    volumes:
+      - outputs:/outputs
+    networks:
+      - forge3d_network
+
+volumes:
+  postgres_data:
+  redis_data:
+  outputs:
+
+networks:
+  forge3d_network:
+    driver: bridge
