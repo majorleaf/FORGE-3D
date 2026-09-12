@@ -1,13 +1,120 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  displayName  String?  @map("display_name")
+  avatarUrl    String?  @map("avatar_url")
+  plan         String   @default("free")
+  credits      Int      @default(10)
+
+  generations  Generation[]
+  savedModels  SavedModel[]
+  usageLogs    UsageLog[]
+
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Generation {
+  id              String   @id @default(uuid())
+  userId          String?  @map("user_id")
+  user            User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  jobType         String   @map("job_type")
+  prompt          String?
+  negativePrompt  String?  @map("negative_prompt")
+  style           String   @default("realistic")
+  resolution      String   @default("standard")
+  dimensions      Json?
+  sourceImageUrl  String?  @map("source_image_url")
+
+  hfModel         String?  @map("hf_model")
+  internalJobId   String?  @map("internal_job_id")
+
+  status          String   @default("pending")
+  progress        Int      @default(0)
+  errorMessage    String?  @map("error_message")
+
+  outputUrl       String?  @map("output_url")
+  outputFormat    String?  @map("output_format")
+  thumbnailUrl    String?  @map("thumbnail_url")
+  openscadCode    String?  @map("openscad_code")
+
+  startedAt       DateTime? @map("started_at")
+  completedAt     DateTime? @map("completed_at")
+
+  savedModels     SavedModel[]
+  usageLogs       UsageLog[]
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("generations")
+}
+
+model SavedModel {
+  id            String     @id @default(uuid())
+  userId        String     @map("user_id")
+  user          User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  generationId  String     @map("generation_id")
+  generation    Generation @relation(fields: [generationId], references: [id], onDelete: Cascade)
+
+  name          String     @default("Untitled Model")
+  tags          String[]   @default([])
+  isPublic      Boolean    @default(false) @map("is_public")
+
+  savedAt       DateTime   @default(now()) @map("saved_at")
+
+  @@unique([userId, generationId])
+  @@index([userId])
+  @@map("saved_models")
+}
+
+model UsageLog {
+  id            String      @id @default(uuid())
+  userId        String?     @map("user_id")
+  user          User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  generationId  String?     @map("generation_id")
+  generation    Generation? @relation(fields: [generationId], references: [id], onDelete: SetNull)
+
+  event         String
+  ipAddress     String?     @map("ip_address")
+  metadata      Json        @default("{}")
+
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@index([event])
+  @@index([createdAt(sort: Desc)])
+  @@map("usage_logs")
+}
+
+model ApiKey {
+  id         String    @id @default(uuid())
+  userId     String    @map("user_id")
+  name       String
+  keyHash    String    @unique @map("key_hash")
+  keyPrefix  String    @map("key_prefix")
+  lastUsed   DateTime? @map("last_used")
+  expiresAt  DateTime? @map("expires_at")
+  revoked    Boolean   @default(false)
+
+  createdAt  DateTime  @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("api_keys")
 }

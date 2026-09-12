@@ -65,17 +65,6 @@ services:
     networks:
       - forge3d_network
 
-  openscad:
-    build:
-      context: .
-      dockerfile: docker/openscad/Dockerfile
-    container_name: forge3d_openscad
-    restart: unless-stopped
-    volumes:
-      - outputs:/outputs
-    networks:
-      - forge3d_network
-
 volumes:
   postgres_data:
   redis_data:
