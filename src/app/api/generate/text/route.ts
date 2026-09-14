@@ -1,24 +1,23 @@
-
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { prisma } from '@/lib/prisma/client'
 import { jobStore } from '@/lib/redis/jobStore'
 import { cache, hashPrompt } from '@/lib/redis/cache'
 import { checkRateLimit } from '@/lib/redis/rateLimit'
-import { textGenerateSchema } from '@/lib/utils/validators'
+import { textGenerateSchema } from '@/lib/utils/validator'
 import { AuthError, RateLimitError, ValidationError } from '@/lib/utils/errors'
 import { logger } from '@/lib/utils/logger'
 import { randomUUID } from 'crypto'
 
 export async function POST(request: NextRequest) {
   try {
-    // ── 1. Auth ────────────────────────────────────────────
+    // Auth
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
 
     if (!user) throw new AuthError()
 
-    // ── 2. Validate input ──────────────────────────────────
+    // Input validation
     const body = await request.json()
     const parsed = textGenerateSchema.safeParse(body)
 
@@ -28,12 +27,12 @@ export async function POST(request: NextRequest) {
 
     const { prompt, style, resolution, dimensions, negativePrompt } = parsed.data
 
-    // ── 3. Rate limit ──────────────────────────────────────
+    // rate limit
     const { allowed, remaining, resetIn } = await checkRateLimit(user.id)
 
     if (!allowed) throw new RateLimitError(resetIn)
 
-    // ── 4. Check cache ─────────────────────────────────────
+    // cache checking
     const cacheKey = hashPrompt(prompt, style)
     const cached = await cache.get(cacheKey)
 
@@ -42,7 +41,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ jobId: null, cached: true, result: JSON.parse(cached) })
     }
 
-    // ── 5. Create job ──────────────────────────────────────
+    //   Create job
     const jobId = randomUUID()
 
     await jobStore.set(jobId, {
@@ -56,7 +55,7 @@ export async function POST(request: NextRequest) {
       createdAt:   new Date().toISOString(),
     })
 
-    // ── 6. Write to DB ─────────────────────────────────────
+    //  Write to database
     await prisma.generation.create({
       data: {
         id:             jobId,
@@ -72,7 +71,7 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // ── 7. Log usage ───────────────────────────────────────
+    // Log usage 
     await prisma.usageLog.create({
       data: {
         userId:       user.id,
@@ -84,7 +83,7 @@ export async function POST(request: NextRequest) {
 
     logger.info('Job created', { jobId, userId: user.id, prompt })
 
-    // ── 8. Return jobId (generation runs in background) ────
+    // Return jobId (generation runs in background) 
     return NextResponse.json({ jobId }, { status: 201 })
 
   } catch (err: unknown) {
