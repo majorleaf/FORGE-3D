@@ -6,6 +6,7 @@ import { cache, hashPrompt } from '@/lib/redis/cache'
 import { checkRateLimit } from '@/lib/redis/rateLimit'
 import { textGenerateSchema } from '@/lib/utils/validator'
 import { AuthError, RateLimitError, ValidationError } from '@/lib/utils/errors'
+import { generateMesh } from '@/lib/jobs/generateMesh'
 import { logger } from '@/lib/utils/logger'
 import { randomUUID } from 'crypto'
 
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
     const parsed = textGenerateSchema.safeParse(body)
 
     if (!parsed.success) {
-      throw new ValidationError(parsed.error.errors[0].message)
+      throw new ValidationError(parsed.error.issues[0].message)
     }
 
     const { prompt, style, resolution, dimensions, negativePrompt } = parsed.data
@@ -84,7 +85,19 @@ export async function POST(request: NextRequest) {
     logger.info('Job created', { jobId, userId: user.id, prompt })
 
     // Return jobId (generation runs in background) 
-    return NextResponse.json({ jobId }, { status: 201 })
+    //return NextResponse.json({ jobId }, { status: 201 })
+    generateMesh({
+        jobId,
+        userId:   user.id,
+        prompt,
+        style,
+        resolution,
+        dimensions,
+    }).catch((err) => {
+        logger.error('Background job failed',  { jobId, error: String(err) })
+    })
+           
+     return NextResponse.json({ jobId }, { status: 201 })
 
   } catch (err: unknown) {
     if (err instanceof AuthError) {

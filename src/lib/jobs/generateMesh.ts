@@ -90,7 +90,7 @@ export async function generateMesh(input: GenerateMeshInput): Promise<void> {
             },
         })
 
-        await prisma.usagelog.create({
+        await prisma.usageLog.create({
             data: {
                 userId,
                 generationId: jobId,
