@@ -15,7 +15,7 @@ services:
     volumes:
       - .:/app
       - app_node_modules:/app/node_modules
-      - /app/.next
+      - app_next:/app/.next
       - outputs:/app/outputs
     depends_on:
       postgres:
@@ -70,6 +70,7 @@ volumes:
   redis_data:
   outputs:
   app_node_modules:
+  app_next:
 
 networks:
   forge3d_network:
