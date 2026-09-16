@@ -1,0 +1,82 @@
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: docker/app/Dockerfile
+    container_name: forge3d_app
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      - REDIS_URL=redis://redis:6379
+      - DATABASE_URL=postgresql://forge3d:forge3d_secret@postgres:5432/forge3d
+      - DIRECT_URL=postgresql://forge3d:forge3d_secret@postgres:5432/forge3d
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+    volumes:
+      - .:/app
+      - app_node_modules:/app/node_modules
+      - app_next:/app/.next
+      - outputs:/app/outputs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - forge3d_network
+    command: npm run dev
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: forge3d_postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: forge3d
+      POSTGRES_PASSWORD: forge3d_secret
+      POSTGRES_DB: forge3d
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forge3d"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - forge3d_network
+
+  redis:
+    image: redis:7-alpine
+    container_name: forge3d_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - forge3d_network
+
+volumes:
+  postgres_data:
+  redis_data:
+  outputs:
+  app_node_modules:
+  app_next:
+
+networks:
+  forge3d_network:
+    driver: bridge
