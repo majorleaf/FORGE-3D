@@ -26,18 +26,17 @@ export async function updateSession(request: NextRequest) {
     )
 
     const { data: { user } } = await supabase.auth.getUser()
+    
+    const isAuthPage = 
+    request.nextUrl.pathname.startsWith('/login') || 
+    request.nextUrl.pathname.startsWith('/register')
+
+    if (!user && !isAuthPage) {
+        const url = request.nextUrl.clone()
+        url.pathname = '/login'
+        return NextResponse.redirect(url)
+    }
 
     // protect all routes  under
-
-   if (
-     !user &&
-    !request.nextUrl.pathname.startsWith('/login') && 
-    !request.nextUrl.pathname.startsWith('/register') && 
-    !request.nextUrl.pathname.startsWith('/auth')
-   ) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
-   }
-   return supabaseResponse
+  return supabaseResponse
 }

@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
-export default function RegisterPage() {
+export default function LoginPage() {
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
   const [error, setError]       = useState('')
@@ -13,12 +13,12 @@ export default function RegisterPage() {
   const supabase = createClient()
   const router   = useRouter()
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setError('')
 
-    const { error } = await supabase.auth.signUp({ email, password })
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
 
     if (error) {
       setError(error.message)
@@ -33,9 +33,9 @@ export default function RegisterPage() {
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#080808' }}>
       <div style={{ width: 360, padding: 32, border: '1px solid #1e1e1e', borderRadius: 8, background: '#0b0b0b' }}>
         <h1 style={{ color: '#ff6b00', fontFamily: 'monospace', fontSize: 24, marginBottom: 8 }}>⬡ FORGE3D</h1>
-        <p style={{ color: '#555', fontFamily: 'monospace', fontSize: 12, marginBottom: 32 }}>Create your account</p>
+        <p style={{ color: '#555', fontFamily: 'monospace', fontSize: 12, marginBottom: 32 }}>Sign in to your account</p>
 
-        <form onSubmit={handleRegister}>
+        <form onSubmit={handleLogin}>
           <div style={{ marginBottom: 16 }}>
             <label style={{ color: '#555', fontFamily: 'monospace', fontSize: 11, display: 'block', marginBottom: 6 }}>EMAIL</label>
             <input
@@ -67,12 +67,12 @@ export default function RegisterPage() {
             disabled={loading}
             style={{ width: '100%', background: '#ff6b00', color: '#000', border: 'none', padding: '12px', borderRadius: 4, fontFamily: 'monospace', fontSize: 13, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', letterSpacing: 1 }}
           >
-            {loading ? 'CREATING...' : 'CREATE ACCOUNT'}
+            {loading ? 'SIGNING IN...' : 'SIGN IN'}
           </button>
 
           <p style={{ color: '#333', fontFamily: 'monospace', fontSize: 11, textAlign: 'center', marginTop: 16 }}>
-            Have an account?{' '}
-            <a href="/login" style={{ color: '#ff6b00' }}>Sign in</a>
+            No account?{' '}
+            <a href="/register" style={{ color: '#ff6b00' }}>Register</a>
           </p>
         </form>
       </div>
