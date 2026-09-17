@@ -14,7 +14,17 @@ export async function POST(request: NextRequest) {
   try {
     // Auth
     const supabase = await createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+       // Try cookie-based aauth first
+    let { data: { user } } = await supabase.auth.getUser()
+    // Fall back to bearer token 
+    if (!user) {
+      const authHeader = request.headers.get('authorization')
+      if (authHeader?.startsWith('Bearer ')) {
+        const token = authHeader.split(' ')[1]
+        const { data } = await supabase.auth.getUser(token)
+        user = data.user 
+      }
+    }
 
     if (!user) throw new AuthError()
 
