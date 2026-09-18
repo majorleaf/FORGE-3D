@@ -17,6 +17,7 @@ services:
       - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
       - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
       - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - SUPABASE_JWT_SECRET=${SUPABASE_JWT_SECRET}
     volumes:
       - .:/app
       - app_node_modules:/app/node_modules

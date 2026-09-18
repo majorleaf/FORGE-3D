@@ -13,10 +13,14 @@ import { randomUUID } from 'crypto'
 export async function POST(request: NextRequest) {
   try {
     // Auth
-   const supabase = await createClient()
+//  Auth
+const authHeader = request.headers.get('authorization')
+const token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null
+
+const supabase = await createClient(token ?? undefined)
 const { data: { user } } = await supabase.auth.getUser()
+
 if (!user) throw new AuthError()
-    
 
     // Input validation
     const body = await request.json()
