@@ -13,20 +13,17 @@ import { randomUUID } from 'crypto'
 export async function POST(request: NextRequest) {
   try {
     // Auth
+    const authHeader = request.headers.get('authorization')
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null
+    
     const supabase = await createClient()
-       // Try cookie-based aauth first
-    let { data: { user } } = await supabase.auth.getUser()
-    // Fall back to bearer token 
-    if (!user) {
-      const authHeader = request.headers.get('authorization')
-      if (authHeader?.startsWith('Bearer ')) {
-        const token = authHeader.split(' ')[1]
-        const { data } = await supabase.auth.getUser(token)
-        user = data.user 
-      }
-    }
-
+    const { data: { user } } = token 
+      ? await supabase.auth.getUser(token)
+      : await supabase.auth.getUser()
+    
     if (!user) throw new AuthError()
+    
+    
 
     // Input validation
     const body = await request.json()
