@@ -13,16 +13,9 @@ import { randomUUID } from 'crypto'
 export async function POST(request: NextRequest) {
   try {
     // Auth
-    const authHeader = request.headers.get('authorization')
-    const token = authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null
-    
-    const supabase = await createClient()
-    const { data: { user } } = token 
-      ? await supabase.auth.getUser(token)
-      : await supabase.auth.getUser()
-    
-    if (!user) throw new AuthError()
-    
+   const supabase = await createClient()
+const { data: { user } } = await supabase.auth.getUser()
+if (!user) throw new AuthError()
     
 
     // Input validation
