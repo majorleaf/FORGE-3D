@@ -46,6 +46,15 @@ if (!user) throw new AuthError()
       return NextResponse.json({ jobId: null, cached: true, result: JSON.parse(cached) })
     }
 
+    await prisma.user.upsert({
+      where: { id: user.id },
+      update: {},
+      create: {
+        id: user.id,
+        email: user.email!,
+      }
+    })
+
     //   Create job
     const jobId = randomUUID()
 
