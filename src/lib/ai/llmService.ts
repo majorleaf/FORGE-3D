@@ -27,12 +27,11 @@ export async function generateOpenSCADCode(
 ): Promise<GenerateOpenSCADResult> {
   const { prompt, dimensions, style, userId, generationId } = input
 
-  // Build dimension context
   const dimContext = dimensions
     ? `Dimensions: width=${dimensions.width ?? 'unspecified'}${dimensions.unit}, height=${dimensions.height ?? 'unspecified'}${dimensions.unit}, depth=${dimensions.depth ?? 'unspecified'}${dimensions.unit}.`
     : ''
 
-  const systemPrompt = `You are a CAD engineer. Generate precise OpenSCAD code based on the user's description and dimensions. 
+  const systemPrompt = `You are a CAD engineer. Generate precise OpenSCAD code based on the user's description and dimensions.
 Rules:
 - Output ONLY valid OpenSCAD code, no explanation
 - Use exact dimensions provided
@@ -45,20 +44,19 @@ Rules:
   const startTime = Date.now()
 
   try {
-    const response = await hf.textGeneration({
-      model:  'mistralai/Mistral-7B-Instruct-v0.3',
-      inputs: `<s>[INST] ${systemPrompt}\n\n${userPrompt} [/INST]`,
-      parameters: {
-        max_new_tokens:  512,
-        temperature:     0.2,
-        return_full_text: false,
-      },
+    const response = await hf.chatCompletion({
+      model: 'mistralai/Mistral-7B-Instruct-v0.3',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user',   content: userPrompt },
+      ],
+      max_tokens:  512,
+      temperature: 0.2,
     })
 
-    const code = response.generated_text.trim()
+    const code = response.choices[0].message.content?.trim() ?? ''
     const durationMs = Date.now() - startTime
 
-    // Log cost to DB
     if (userId && generationId) {
       await prisma.usageLog.create({
         data: {
@@ -75,7 +73,6 @@ Rules:
     }
 
     logger.info('OpenSCAD code generated', { generationId, durationMs })
-
     return { code, tokensUsed: code.length }
 
   } catch (err) {
